@@ -1,0 +1,3 @@
+package LoggerUtil
+
+trait LoggerUtil
