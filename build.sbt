@@ -19,6 +19,7 @@ lazy val ingestion = (project in file("ingestion"))
   .settings(
     name := "reddit-ingestion",
     libraryDependencies ++= Seq(
+      "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.softwaremill.sttp.client3" %% "core" % "3.9.0",
       "org.apache.kafka" %% "kafka" % "3.6.0"
     )
