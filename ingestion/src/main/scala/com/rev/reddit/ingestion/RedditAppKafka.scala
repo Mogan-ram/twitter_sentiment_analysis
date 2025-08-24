@@ -1,5 +1,6 @@
 package com.rev.reddit.ingestion
 
+import IngestionUtils.KafkaProducerUtil
 import play.api.libs.json.Json
 
 object RedditAppKafka {

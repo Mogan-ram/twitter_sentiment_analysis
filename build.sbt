@@ -10,7 +10,8 @@ lazy val utils = (project in file("utils"))
     name := "reddit-utils",
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % "2.0.9",
-      "ch.qos.logback" % "logback-classic" % "1.4.11"
+      "ch.qos.logback" % "logback-classic" % "1.4.11",
+      "org.apache.kafka" % "kafka-clients" % "3.6.0"
     )
   )
 
@@ -21,7 +22,7 @@ lazy val ingestion = (project in file("ingestion"))
     libraryDependencies ++= Seq(
       "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.softwaremill.sttp.client3" %% "core" % "3.9.0",
-      "org.apache.kafka" %% "kafka" % "3.6.0"
+      "org.apache.kafka" % "kafka-clients" % "3.6.0"
     )
   )
 

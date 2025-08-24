@@ -1,7 +1,6 @@
-package com.rev.reddit.ingestion
+package IngestionUtils
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-
 import java.util.Properties
 
 object KafkaProducerUtil {
