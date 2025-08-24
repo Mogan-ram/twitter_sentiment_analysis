@@ -21,22 +21,25 @@ lazy val ingestion = (project in file("ingestion"))
     libraryDependencies ++= Seq(
       "com.typesafe.play" %% "play-json" % "2.9.4",
       "com.softwaremill.sttp.client3" %% "core" % "3.9.0",
-      "org.apache.kafka" %% "kafka" % "3.6.0"
+      "org.apache.kafka" %% "kafka" % "3.6.0",
+      "com.typesafe.play" %% "play-json" % "2.10.0-RC7" // ✅ add this
     )
   )
+
 
 lazy val processing = (project in file("processing"))
   .dependsOn(utils)
   .settings(
     name := "reddit-processing",
     libraryDependencies ++= Seq(
-      "com.johnsnowlabs.nlp" %% "spark-nlp" % "5.3.0",
-      "org.apache.spark" %% "spark-core" % "3.5.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
-      "org.apache.spark" %% "spark-sql" % "3.5.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
-      "org.apache.spark" %% "spark-mllib" % "3.5.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl")
+      "org.apache.spark" %% "spark-core" % "3.4.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
+      "org.apache.spark" %% "spark-sql" % "3.4.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
+      "org.apache.spark" %% "spark-streaming" % "3.4.0" % "compile",
+      "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.4.0" % "compile",
+      "org.apache.spark" %% "spark-mllib" % "3.4.0" % "compile",
+      "org.json4s" %% "json4s-jackson" % "3.6.11" // Compatible version
     )
   )
-
 lazy val storage = (project in file("storage"))
   .dependsOn(utils)
   .settings(
