@@ -1,0 +1,11 @@
+.idea
+ingestion/target
+processing/target
+analysis/target
+storage/target
+visualization/target
+project/target
+target
+.idea/workspace.xml
+.idea/shelf/
+.bsp
