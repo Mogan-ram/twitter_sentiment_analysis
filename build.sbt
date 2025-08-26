@@ -41,10 +41,14 @@ lazy val processing = (project in file("processing"))
     )
   )
 lazy val storage = (project in file("storage"))
-  .dependsOn(utils)
+  .dependsOn(utils, processing)
   .settings(
     name := "reddit-storage",
     libraryDependencies ++= Seq(
+      "org.postgresql" % "postgresql" % "42.6.0",
+      "org.apache.spark" %% "spark-core" % "3.4.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
+      "org.apache.spark" %% "spark-sql" % "3.4.0" % "compile" exclude("org.apache.logging.log4j", "log4j-slf4j-impl"),
+      "org.apache.spark" %% "spark-sql-kafka-0-10" % "3.4.0" % "compile"
     )
   )
 

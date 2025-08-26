@@ -19,4 +19,11 @@ object ProcessingConfig {
 
   // Application Configuration
   val APP_NAME = "Reddit Sentiment Analysis Pipeline"
+
+  //Storage Configuration
+  val POSTGRES_URL = "jdbc:postgresql://localhost:5432/Reddit_data"
+  val POSTGRES_USER = "postgres"
+  val POSTGRES_PASSWORD = "Greeshmanth123"
+  val POSTGRES_TABLE = "processed_reddit"
+
 }
