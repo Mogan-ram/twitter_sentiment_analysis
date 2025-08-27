@@ -1,6 +1,5 @@
 package processing.stream
 
-
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.{StreamingQuery, Trigger}
 import org.apache.spark.sql.types._
@@ -9,6 +8,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import processing.config.ProcessingConfig
 import processing.ml.SentimentAnalyzer
+import processing.monitor.DeadLetterQueue
 import processing.utils.TextProcessor
 
 import scala.util.{Failure, Success, Try}
@@ -102,8 +102,8 @@ object KafkaStreamProcessor {
                            spark: SparkSession): DataFrame = {
     import spark.implicits._
 
-    // Process posts
-    val processedPosts = postsStream
+    // =============== POSTS PROCESSING ===============
+    val postsParsed = postsStream
       .select(
         col("key").alias("kafka_key"),
         col("value").cast("string").alias("json_string"),
@@ -111,22 +111,32 @@ object KafkaStreamProcessor {
         col("content_type")
       )
       .withColumn("parsed_data", parsePostJson(col("json_string")))
-      .filter(col("parsed_data").isNotNull)
+
+    val validPosts = postsParsed.filter(col("parsed_data").isNotNull)
       .select(
         col("kafka_key"),
         col("kafka_timestamp"),
         col("content_type"),
         col("parsed_data._1").alias("id"),
         col("parsed_data._2").alias("content"),
-        lit("").alias("parent_id"), // posts don't have parent_id
+        lit("").alias("parent_id"),
         col("parsed_data._3").alias("author"),
         col("parsed_data._4").alias("subreddit"),
         col("parsed_data._5").alias("score"),
         col("parsed_data._6").alias("created_utc")
       )
 
-    // Process comments
-    val processedComments = commentsStream
+    //  failed posts → DLQ
+    val failedPosts = postsParsed.filter(col("parsed_data").isNull)
+      .withColumn("original_message", col("json_string"))
+      .withColumn("error_type", lit("JSONParseError"))
+      .withColumn("error_message", lit("Invalid Post JSON"))
+      .withColumn("source_topic", lit(ProcessingConfig.POSTS_INPUT_TOPIC))
+    DeadLetterQueue.handleFailedMessages(failedPosts)
+    DeadLetterQueue.logFailedMessages(failedPosts)
+
+    // =============== COMMENTS PROCESSING ===============
+    val commentsParsed = commentsStream
       .select(
         col("key").alias("kafka_key"),
         col("value").cast("string").alias("json_string"),
@@ -134,7 +144,8 @@ object KafkaStreamProcessor {
         col("content_type")
       )
       .withColumn("parsed_data", parseCommentJson(col("json_string")))
-      .filter(col("parsed_data").isNotNull)
+
+    val validComments = commentsParsed.filter(col("parsed_data").isNotNull)
       .select(
         col("kafka_key"),
         col("kafka_timestamp"),
@@ -148,18 +159,28 @@ object KafkaStreamProcessor {
         col("parsed_data._6").alias("created_utc")
       )
 
-    // Union both streams
-    val unifiedStream = processedPosts.union(processedComments)
+    //  failed comments → DLQ
+    val failedComments = commentsParsed.filter(col("parsed_data").isNull)
+      .withColumn("original_message", col("json_string"))
+      .withColumn("error_type", lit("JSONParseError"))
+      .withColumn("error_message", lit("Invalid Comment JSON"))
+      .withColumn("source_topic", lit(ProcessingConfig.COMMENTS_INPUT_TOPIC))
+    DeadLetterQueue.handleFailedMessages(failedComments)
+    DeadLetterQueue.logFailedMessages(failedComments)
 
-    // Clean text and apply sentiment analysis
+    // =============== UNIFY STREAMS ===============
+    val unifiedStream = validPosts.union(validComments)
+
+
     val cleanedStream = unifiedStream
       .withColumn("cleaned_text", TextProcessor.cleanText(col("content"), col("content_type")))
       .filter(col("cleaned_text") =!= "" && length(col("cleaned_text")) > ProcessingConfig.MIN_TEXT_LENGTH)
 
-    // Apply sentiment analysis
+
     val sentimentUDF = SentimentAnalyzer.applySentimentAnalysis(sentimentModel)
-    val sentimentStream = cleanedStream
-      .withColumn("sentiment_result", sentimentUDF(col("cleaned_text")))
+    val sentimentApplied = cleanedStream.withColumn("sentiment_result", sentimentUDF(col("cleaned_text")))
+
+    val goodSentiment = sentimentApplied.filter(col("sentiment_result").isNotNull)
       .select(
         col("*"),
         col("sentiment_result._1").alias("sentiment"),
@@ -168,13 +189,33 @@ object KafkaStreamProcessor {
       )
       .drop("sentiment_result")
 
-    // Add processing metadata and quality metrics
-    sentimentStream
+    // failed sentiment → DLQ
+    val failedSentiment = sentimentApplied.filter(col("sentiment_result").isNull)
+      .withColumn("original_message", col("cleaned_text"))
+      .withColumn("error_type", lit("SentimentAnalysisError"))
+      .withColumn("error_message", lit("Null sentiment result"))
+      .withColumn("source_topic", col("content_type"))
+    DeadLetterQueue.handleFailedMessages(failedSentiment)
+    DeadLetterQueue.logFailedMessages(failedSentiment)
+
+
+    val sentimentStream = goodSentiment
       .withColumn("processing_timestamp", current_timestamp())
       .withColumn("model_version", lit(ProcessingConfig.MODEL_VERSION))
       .withColumn("text_length", length(col("cleaned_text")))
       .withColumn("engagement_score", col("score"))
       .filter(col("confidence") >= ProcessingConfig.MIN_CONFIDENCE_THRESHOLD)
+
+    //streaming metrics for live eval
+//    val metricsStream = ModelEvaluator.streamingEvaluationMetrics(sentimentStream)
+//    metricsStream.writeStream
+//      .outputMode("update")
+//      .format("console")
+//      .option("truncate", false)
+//      .trigger(Trigger.ProcessingTime("1 minute"))
+//      .start()
+
+    sentimentStream
   }
 
   /**
