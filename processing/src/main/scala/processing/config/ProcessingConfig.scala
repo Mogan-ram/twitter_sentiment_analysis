@@ -6,9 +6,10 @@ object ProcessingConfig {
   val POSTS_INPUT_TOPIC = "reddit-posts"
   val COMMENTS_INPUT_TOPIC = "reddit-comments"
   val OUTPUT_TOPIC = "processed-sentiment"
+  val DLQ_TOPIC = "reddit-dlq"  
 
   // Spark Configuration
-  val CHECKPOINT_LOCATION = "/tmp/reddit-sentiment-checkpoint"
+  val CHECKPOINT_LOCATION = "D:/kafka/tmp/reddit-sentiment-checkpoint"
   val PROCESSING_INTERVAL = "10 seconds"
   val MAX_OFFSETS_PER_TRIGGER = 1000
 
@@ -20,10 +21,10 @@ object ProcessingConfig {
   // Application Configuration
   val APP_NAME = "Reddit Sentiment Analysis Pipeline"
 
-  //Storage Configuration
+  // Storage Configuration
   val POSTGRES_URL = "jdbc:postgresql://localhost:5432/Reddit_data"
   val POSTGRES_USER = "postgres"
-  val POSTGRES_PASSWORD = "Greeshmanth123"
+  val POSTGRES_PASSWORD = "admin"
   val POSTGRES_TABLE = "processed_reddit"
-
+  val POSTGRES_DLQ_TABLE = "reddit_dlq"   //
 }
