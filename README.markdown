@@ -139,6 +139,6 @@ Contributions are welcome! Please follow these steps:
 
 
 ## Acknowledgments
-- Developed as part of Revature's Java Full Stack training program.
+- Developed as part of Revature's Readiness Programme.
 - Inspired by real-world data engineering challenges in social media analytics.
 - Thanks to the open-source communities behind Spark, Kafka, and VADER.
